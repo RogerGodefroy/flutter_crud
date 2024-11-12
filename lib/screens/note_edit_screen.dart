@@ -1,67 +1,30 @@
-import 'package:cbs_notes_crud/providers/note_provider.dart';
+import 'package:cbs_notes_crud/bloc/note_bloc.dart';
+import 'package:cbs_notes_crud/bloc/note_event.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-class NoteEditScreen extends StatefulWidget {
+class NoteEditScreen extends StatelessWidget {
   static const routeName = '/edit-note';
 
-  const NoteEditScreen({super.key});
-
-  @override
-  // ignore: library_private_types_in_public_api
-  _NoteEditScreenState createState() => _NoteEditScreenState();
-}
-
-class _NoteEditScreenState extends State<NoteEditScreen> {
   final _formKey = GlobalKey<FormState>();
-  final Map<String, dynamic> _formData = {
-    'title': '',
-    'content': '',
-  };
+  final Map<String, dynamic> _formData = {};
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final note =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
-
-    if (note != null && _formData['id'] == null) {
-      setState(() {
-        _formData['id'] = note['id'];
-        _formData['title'] = note['title'];
-        _formData['content'] = note['content'];
-      });
-    }
-  }
-
-  void _saveForm() {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-
-      if (_formData['id'] == null) {
-        noteProvider.addNote({
-          'title': _formData['title'],
-          'content': _formData['content'],
-        });
-      } else {
-        noteProvider.updateNote({
-          'id': _formData['id'],
-          'title': _formData['title'],
-          'content': _formData['content'],
-        });
-      }
-      Navigator.of(context).pop();
-    }
-  }
+  NoteEditScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final note =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+
+    if (note != null) {
+      _formData['id'] = note['id'];
+      _formData['title'] = note['title'];
+      _formData['content'] = note['content'];
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-            _formData['id'] == null ? 'Notitie toevoegen' : 'Wijzigen notitie'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(note == null ? 'Add Note' : 'Edit Note'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -71,34 +34,51 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
             children: [
               TextFormField(
                 initialValue: _formData['title'],
-                decoration: const InputDecoration(labelText: 'Titel'),
+                decoration: const InputDecoration(labelText: 'Title'),
                 onSaved: (value) {
                   _formData['title'] = value;
                 },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Voeg een titel toe';
+                    return 'Please enter a title';
                   }
                   return null;
                 },
               ),
               TextFormField(
                 initialValue: _formData['content'],
-                decoration: const InputDecoration(labelText: 'Notitie'),
+                decoration: const InputDecoration(labelText: 'Content'),
                 onSaved: (value) {
                   _formData['content'] = value;
                 },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Voeg inhoud van de notitie toe';
+                    return 'Please enter content';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _saveForm,
-                child: const Text('Opslaan'),
+                child: const Text('Save'),
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    _formKey.currentState!.save();
+                    if (_formData['id'] == null) {
+                      BlocProvider.of<NoteBloc>(context).add(AddNote({
+                        'title': _formData['title'],
+                        'content': _formData['content'],
+                      }));
+                    } else {
+                      BlocProvider.of<NoteBloc>(context).add(UpdateNote({
+                        'id': _formData['id'],
+                        'title': _formData['title'],
+                        'content': _formData['content'],
+                      }));
+                    }
+                    Navigator.of(context).pop();
+                  }
+                },
               ),
             ],
           ),
