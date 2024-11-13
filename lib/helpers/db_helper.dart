@@ -4,12 +4,17 @@ import 'package:sqflite/sqflite.dart';
 class DBHelper {
   static final DBHelper instance = DBHelper._init();
   static Database? _database;
+  String? _dbPath;
 
   DBHelper._init();
 
+  void setDbPath(String dbPath) {
+    _dbPath = dbPath;
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('notes.db');
+    _database = await _initDB(_dbPath ?? 'notes.db');
     return _database!;
   }
 
@@ -52,5 +57,13 @@ CREATE TABLE notes (
   Future<int> delete(int id) async {
     final db = await instance.database;
     return await db.delete('notes', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future close() async {
+    final db = await instance.database;
+    if (_database != null) {
+      await db.close();
+      _database = null;
+    }
   }
 }
